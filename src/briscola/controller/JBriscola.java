@@ -11,6 +11,7 @@ import briscola.model.*;
 import briscola.view.AudioManager;
 import briscola.view.FinestraGiocoJBriscola;
 import briscola.view.Pannello;
+import briscola.view.PannelloProfilo;
 
 @SuppressWarnings("deprecation")
 public class JBriscola {
@@ -25,14 +26,20 @@ public class JBriscola {
         this.model = model;
         this.view = view;
         
+     // Registrazione Observer
         this.model.addObserver(view.getPannelloGioco());
         this.model.addObserver(view.getPannelloMenu());
+        this.model.addObserver(view.getPannelloProfilo());
+        
+     // CARICAMENTO INIZIALE PROFILO
+        caricaOInizializzaProfilo();
 
-     // --- AZIONE BOTTONE "GIOCA" NEL MENU ---
+     // --- 1. AZIONI MENU ---
         view.getPannelloMenu().getGioca().addActionListener(e->{
         	
         	if(this.model.getGiocatori().isEmpty()) {
-        		this.model.preparaPartitaASquadre(new GiocatoreUmano("Giocatore"));
+        		String nick= this.model.getProfilo().getNickname();
+        		this.model.preparaPartitaASquadre(new GiocatoreUmano(nick)); // Attenzione da completare!!!
         	}
         	
         	this.model.inizializzaPartita();
@@ -42,7 +49,70 @@ public class JBriscola {
         	
         });
         
-     // --- AZIONE BOTTONE "MENU" NEL PANNELLO GIOCO ---
+     
+        view.getPannelloMenu().getProfilo().addActionListener(e->{
+        	
+        	// Ricarica il profilo dal model per annullare eventuali modifiche non salvate
+            view.getPannelloProfilo().caricaDatiProfilo(this.model.getProfilo());
+        	
+        	view.mostraSchermata(Pannello.TipoPannello.PROFILO.name());
+        	
+        });
+        
+        
+     // --- 2. AZIONI PANNELLO PROFILO ---
+        PannelloProfilo pannelloProfilo = view.getPannelloProfilo();
+
+        // SALVA MODIFICHE
+        pannelloProfilo.getBtnSalva().addActionListener(e -> {
+            String nuovoNick = pannelloProfilo.getNicknameInserito();
+            if (nuovoNick.isEmpty()) {
+                JOptionPane.showMessageDialog(view, "Inserisci un nickname valido!", "Attenzione", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Profilo p = this.model.getProfilo();
+            p.setNickname(nuovoNick);
+            p.setAvatarPath(pannelloProfilo.getAvatarSelezionato());
+
+            GestoreProfilo.salva(p);
+            this.model.setProfilo(p); // Notifica la View per sicurezza
+            
+         // BLOCCHIAMO I CAMPI DOPO IL SALVATAGGIO
+            pannelloProfilo.impostaCampiModificabili(false);
+
+            JOptionPane.showMessageDialog(view, "Profilo aggiornato!");
+        });
+        
+        // RESETTA PROFILO
+        pannelloProfilo.getBtnReset().addActionListener(e -> {
+            int conferma = JOptionPane.showConfirmDialog(
+                view, 
+                "Sei sicuro di voler resettare il profilo e tutte le statistiche?", 
+                "Conferma Reset", 
+                JOptionPane.YES_NO_OPTION, 
+                JOptionPane.WARNING_MESSAGE
+            );
+
+            if (conferma == JOptionPane.YES_OPTION) {
+                Profilo nuovoProfilo = new Profilo("Giocatore");
+                this.model.setProfilo(nuovoProfilo);
+                GestoreProfilo.salva(nuovoProfilo);
+                
+             // SBLOCCHIAMO I CAMPI PER PERMETTERE L'INSERIMENTO DI NUOVI DATI
+                pannelloProfilo.impostaCampiModificabili(true);
+                
+                JOptionPane.showMessageDialog(view, "Profilo resettato con successo!");
+            }
+        });
+
+        // TORNA AL MENU
+        pannelloProfilo.getBtnTornaMenu().addActionListener(e -> {
+            view.mostraSchermata(Pannello.TipoPannello.MENU.name());
+        });
+
+        
+        // --- 3. AZIONI PANNELLO GIOCO ---  
         view.getPannelloGioco().getTornaAlMenu().addActionListener(e -> {
         	
         	// Mostra l'allert di conferma uscita
@@ -88,6 +158,15 @@ public class JBriscola {
         
     }
     
+    private void caricaOInizializzaProfilo() {
+        Profilo p = GestoreProfilo.carica();
+        if (p == null) {
+            p = new Profilo("Giocatore");
+            GestoreProfilo.salva(p);
+        }
+        this.model.setProfilo(p);
+    }
+    
     public void gestisciAvanzamentoTurno() {
         // CASO 1: Tutte e 4 le carte sono sul tavolo (Mano completata)
         if (this.model.getTavolo().size() == 4) {
@@ -111,11 +190,11 @@ public class JBriscola {
                     });
                     timerFinePartita.setRepeats(false);
                     timerFinePartita.start();
-                } 
-                else if (!this.model.isTurnoUmano()) {
+             } 
+             else if (!this.model.isTurnoUmano()) {
                     // Se la partita continua e tocca a un bot, prosegui
                     gestisciAvanzamentoTurno();
-                }
+             }
             });
             timerPulizia.setRepeats(false);
             timerPulizia.start();

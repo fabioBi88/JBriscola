@@ -28,6 +28,8 @@ public class Partita extends Observable {
 	private HashMap<Carta, Giocatore> giocate= new HashMap<>();
 	
 	private Stato statoPartita;
+	
+	private Profilo profilo;
 
 	
 	
@@ -49,6 +51,7 @@ public class Partita extends Observable {
 		tavolo= new ArrayList<>();
 		squadre=new ArrayList<>();
 		statoPartita= Stato.NON_INIZIATA;		
+		profilo= new Profilo("GiocatoreUmano");
 	}
 	
 	public void preparaPartitaASquadre(Giocatore umano) {
@@ -166,6 +169,7 @@ public class Partita extends Observable {
 	    }
 	    
 	    if (isFinita()) {
+	    	aggiornaStatisticheFinePartita();
 	        cambiaStato(Stato.FINE_PARTITA);
 	        return;
 	    }
@@ -211,6 +215,12 @@ public class Partita extends Observable {
 	public List<Giocatore> getGiocatori() {
 		return giocatori;
 	}
+	
+	public List<Squadra> getSquadre(){
+		
+		return squadre;
+		
+	}
 
 	public List<Carta> getTavolo() {
 		return tavolo;
@@ -231,6 +241,18 @@ public class Partita extends Observable {
 	public Mazzo getMazzo(){
 		
 		return mazzo;
+	}
+	
+	public Profilo getProfilo() {
+		return profilo;
+	}
+	
+	public void setProfilo(Profilo profilo) {
+		
+		this.profilo=profilo;
+		
+		setChanged();
+        notifyObservers();
 	}
 	
 	public void resetPartita() {
@@ -258,9 +280,23 @@ public class Partita extends Observable {
 	    cambiaStato(Stato.NON_INIZIATA);
 	}
 	
-	
-
-	
+	public void aggiornaStatisticheFinePartita() {
+		
+		if (profilo == null || squadre.isEmpty()) return;
+		
+		if (squadre.get(0).equals(getVincitoreFinale())) {
+			
+			profilo.registraVittoria();	
+		} else {
+		
+			profilo.registraSconfitta();
+		}
+		
+        GestoreProfilo.salva(profilo);
+        
+        setProfilo(profilo); // Notifica la View per sicurezza
+		
+	}
 	
 
 }

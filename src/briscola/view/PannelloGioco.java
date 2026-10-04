@@ -15,11 +15,13 @@ public class PannelloGioco extends Pannello {
 
 	// Bottoni per le carte dell'umano (Sud)
     private JButton[] bottoniCarteMano;
+    private JLabel labelPreseNoi;
     
     // Label per le carte coperte dei BOT
     private JLabel[] labelCarteOvest; // Avversario 1 (Giocatore 1)
     private JLabel[] labelCarteNord;  // Compagno (Giocatore 2)
     private JLabel[] labelCarteEst;   // Avversario 2 (Giocatore 3)
+    private JLabel labelPreseAvversari;
     
     // Label per le 4 carte giocate al centro del tavolo
     private JLabel[] labelCarteTavolo; // le carte sul tavolo
@@ -27,9 +29,11 @@ public class PannelloGioco extends Pannello {
     private JLabel labelStatoGioco; // indica il turno attuale e vincitore finale?
     private JButton tornaAlMenu;
     private String messaggioVittoria;
+    
 
     // Immagine standard per il retro delle carte giocate coperte
     private final ImageIcon iconaRetro = caricaIcona("retro", 70, 110);
+    private final ImageIcon iconaRetroRuotata= caricaIcona("retro_ruotata", 110,70);
 
     public PannelloGioco() {
        
@@ -54,6 +58,7 @@ public class PannelloGioco extends Pannello {
         
         // Nord: Compagno (Carte coperte)
         JPanel panelNord = creaPannelloTrasparente(new FlowLayout());
+        panelNord.setPreferredSize(new Dimension(0, 120)); // Altezza fissa per il Nord
         labelCarteNord = new JLabel[3];
         for (int i = 0; i < 3; i++) {
             labelCarteNord[i] = new JLabel(iconaRetro);
@@ -61,22 +66,44 @@ public class PannelloGioco extends Pannello {
         }
         areaNord.add(panelNord);
 
-        // --- OVEST ed EST: Avversari (Carte coperte) ---
-        JPanel panelOvest = creaPannelloTrasparente(new GridLayout(3, 1));
-        JPanel panelEst = creaPannelloTrasparente(new GridLayout(3, 1));
-        
+        // --- OVEST : Avversari (Carte coperte) ---
+        JPanel panelOvest = creaPannelloTrasparente(new BorderLayout());
+        panelOvest.setPreferredSize(new Dimension(120, 0)); // Larghezza fissa per gli avversari Ovest ed Est (80px per contenere le carte da 70px)
+        JPanel panelCarteOvest = creaPannelloTrasparente(new GridLayout(3,1,0,5));
         labelCarteOvest = new JLabel[3];
-        labelCarteEst = new JLabel[3];
-        
+    
         for (int i = 0; i < 3; i++) {
-            labelCarteOvest[i] = new JLabel(iconaRetro);
-            labelCarteEst[i] = new JLabel(iconaRetro);
-            panelOvest.add(labelCarteOvest[i]);
-            panelEst.add(labelCarteEst[i]);
+            labelCarteOvest[i] = new JLabel(iconaRetroRuotata);
+            panelCarteOvest.add(labelCarteOvest[i]);
         }
-        
+        panelOvest.add(panelCarteOvest, BorderLayout.NORTH);
         this.add(panelOvest, BorderLayout.WEST);
+        
+        
+     // --- EST: Avversario 2 + Mazzetto Prese Avversari ---
+        JPanel panelEst = creaPannelloTrasparente(new BorderLayout());
+        panelEst.setPreferredSize(new Dimension(120, 0));
+
+        // Contenitore centrale per le carte Ovest/Est che centra il GridLayout
+        JPanel panelCarteEstWrapper = creaPannelloTrasparente(new GridBagLayout());
+        JPanel panelCarteEst = creaPannelloTrasparente(new GridLayout(3, 1, 0, 5)); // 5px di gap verticale
+
+        labelCarteEst = new JLabel[3];
+        for (int i = 0; i < 3; i++) {
+            labelCarteEst[i] = new JLabel(iconaRetroRuotata);
+            panelCarteEst.add(labelCarteEst[i]);
+        }
+        panelCarteEstWrapper.add(panelCarteEst);
+
+        panelEst.add(panelCarteEstWrapper, BorderLayout.NORTH);
+
+        // Mazzetto Prese Avversari in basso
+        labelPreseAvversari = this.creaLabelMazzettoPrese();
+        panelEst.add(labelPreseAvversari, BorderLayout.SOUTH);
+
         this.add(panelEst, BorderLayout.EAST);
+        
+
 
         // --- CENTRO: Tavolo ---
         JPanel panelCentro = creaPannelloTrasparente(new BorderLayout());
@@ -103,7 +130,11 @@ public class PannelloGioco extends Pannello {
         this.add(panelCentro, BorderLayout.CENTER);
 
         // --- SUD: Carte Giocatore Umano ---
-        JPanel panelSud = creaPannelloTrasparente(new FlowLayout());
+        JPanel panelSud = creaPannelloTrasparente(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        panelSud.setPreferredSize(new Dimension(0, 130)); // Altezza fissa per il Sud
+        
+        // Contenitore per le 3 carte in mano
+        JPanel panelManoUmano = creaPannelloTrasparente(new FlowLayout());
         bottoniCarteMano = new JButton[3];
         for (int i = 0; i < 3; i++) {
             bottoniCarteMano[i] = new JButton();
@@ -112,8 +143,14 @@ public class PannelloGioco extends Pannello {
             bottoniCarteMano[i].setContentAreaFilled(false);
             bottoniCarteMano[i].setBorderPainted(false);
             bottoniCarteMano[i].setFocusPainted(false);
-            panelSud.add(bottoniCarteMano[i]);
+            panelManoUmano.add(bottoniCarteMano[i]);
         }
+        panelSud.add(panelManoUmano);
+        
+        // Mazzetto Prese "Noi" (posizionato a fianco delle tue carte)
+        labelPreseNoi = creaLabelMazzettoPrese();
+        panelSud.add(labelPreseNoi);
+  
         this.add(panelSud, BorderLayout.SOUTH);
     }
     
@@ -203,6 +240,13 @@ public class PannelloGioco extends Pannello {
                     labelCarteTavolo[i].setIcon(null);
                 }
             }
+            
+         // 6. Aggiornamento Punteggi e Mazzetti
+            List<Squadra> squadre = partita.getSquadre();
+            if (squadre != null && squadre.size() >= 2) {
+                aggiornaMazzettoPrese(labelPreseNoi, squadre.get(0));
+                aggiornaMazzettoPrese(labelPreseAvversari, squadre.get(1));
+            }
         }
 
         repaint();
@@ -223,14 +267,14 @@ public class PannelloGioco extends Pannello {
             Image img = icon.getImage().getScaledInstance(larghezza, altezza, Image.SCALE_SMOOTH);
             return new ImageIcon(img);
         } else {
-            // Metti questa riga per vedere l'errore esatto in console!
+            // controllo per vedere l'eventuale errore in console!
             System.err.println("ERRORE: Impossibile trovare l'immagine al percorso: " + path);
             return null;
         }
     }
     
     
-    public void addCartaClickListener(int indiceCarta, ActionListener listener) {
+    public void addCartaClickListener(int indiceCarta, ActionListener listener) { // verificare se metterlo nel controller
         if (indiceCarta >= 0 && indiceCarta < bottoniCarteMano.length) {
             // Attacca il listener al bottone interno corrispondente (0, 1 o 2)
             bottoniCarteMano[indiceCarta].addActionListener(listener);
@@ -240,8 +284,28 @@ public class PannelloGioco extends Pannello {
     
     private JPanel creaPannelloTrasparente(LayoutManager layout) {
         JPanel panel = new JPanel(layout);
-        panel.setOpaque(false); // <--- Questo rende il pannello trasparente
+        panel.setOpaque(false); 
         return panel;
+    }
+    
+    private JLabel creaLabelMazzettoPrese() {
+        JLabel label = new JLabel("Punti: 0", iconaRetro, SwingConstants.CENTER);
+        label.setVerticalTextPosition(SwingConstants.BOTTOM);
+        label.setHorizontalTextPosition(SwingConstants.CENTER);
+        label.setForeground(Color.WHITE);
+        label.setFont(new Font("Arial", Font.BOLD, 12));
+        label.setVisible(false); // Inizialmente nascosto
+        return label;
+    }
+    
+
+    private void aggiornaMazzettoPrese(JLabel label, Squadra squadra) {
+        if (squadra != null && (squadra.getPuntggioSquadra() > 0 || squadra.haFattoPrese())) {
+            label.setText("Punti: " + squadra.getPuntggioSquadra());
+            label.setVisible(true);
+        } else {
+            label.setVisible(false);
+        }
     }
 
 	public JButton getTornaAlMenu() {

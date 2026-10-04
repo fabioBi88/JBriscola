@@ -56,7 +56,8 @@ public class FinestraGiocoJBriscola extends JFrame{
 		 * le dimensioni della finestra sono settate al minimo necessario per mostrare
 		 * interamente gli elementi da essa contenuti
 		 */
-		setSize(900,800);
+		this.setResizable(false);
+		setSize(1024,800);
 		setLocationRelativeTo(null);
 		setVisible(true);
 		

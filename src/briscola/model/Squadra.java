@@ -38,5 +38,20 @@ public class Squadra {
 		
 		return giocatori;
 	}
+	
+	/**
+	 * metodo per verificare se la squadra ha fatto una presa, permette alla view di visualizzare il pozzo della squadra anche se il totale della presa è zero
+	 * @return un boolean che indica le prese della squadra
+	 */
+
+	public boolean haFattoPrese() {
+	    for (Giocatore g : giocatori) { 
+	        if (g.getPozzo() != null && !g.getPozzo().isEmpty()) { 
+	            return true; // Almeno un giocatore ha preso delle carte
+	        }
+	    }
+	    return false;
+	}
+	
 
 }

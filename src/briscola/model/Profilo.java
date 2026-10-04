@@ -1,8 +1,13 @@
 package briscola.model;
 
-public class Profilo {
+import java.io.Serializable;
+
+public class Profilo implements Serializable {
 	
-	private final String nickname;
+	// Identificatore per la serializzazione
+    private static final long serialVersionUID = 1L;
+	
+	private String nickname;
 	private int partiteVinte;
 	private int partitePerse;
 	private String avatarPath;
@@ -20,6 +25,10 @@ public class Profilo {
 	public String getNickname() {
 		return nickname;
 	}
+	
+	public void setNickname(String nickName) {
+		this.nickname=nickName;
+	}
 
 	public int getPartiteVinte() {
 		return partiteVinte;
@@ -31,6 +40,21 @@ public class Profilo {
 	
 	public int getPartiteGiocate() {
 		return partiteVinte+partitePerse;
+	}
+	
+	public String getPercentualeVittorie() {
+	    int giocate = getPartiteGiocate();
+	    
+	    // 1. Protezione contro il crash per divisione per zero
+	    if (giocate == 0) {
+	        return "0%";
+	    }
+	    
+	    // 2. Cast a (double) per ottenere la divisione decimale corretta
+	    double percentuale = ((double) getPartiteVinte() / giocate) * 100;
+	    
+	    // 3. Formattazione con un decimale
+	    return String.format("%.1f%%", percentuale);
 	}
 	
 	public void registraVittoria() {
