@@ -46,17 +46,6 @@ public abstract class Pannello extends JPanel implements Observer { // integrare
         return b;
     }
 	
-	protected JButton creaBottoneCarta(String testo) {
-		JButton b= new JButton(testo);
-		
-		b.setFont(new Font("Arial", Font.PLAIN, 18));
-		b.setPreferredSize(new Dimension(70, 100));
-        b.setFocusPainted(false);
-        b.setBackground(Color.WHITE);
-        
-        return b;
-	}
-	
 	
 	@Override
 	protected void paintComponent(Graphics g) { 

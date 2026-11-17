@@ -2,10 +2,19 @@ package briscola.model;
 
 import java.util.*;
 
+/**
+ * Rappresenta il mazzo di carte del gioco della Briscola.
+ * Gestisce la creazione, il mescolamento e l'estrazione delle carte.
+ */
 public class Mazzo {
 	
 	private List<Carta> carte;
 	
+	/**
+	 * Costruisce e inizializza un nuovo mazzo di carte completo,
+	 * generando tutte le combinazioni possibili di {@link Seme} e {@link Valore},
+	 * per poi mescolarle.
+	 */
 	public Mazzo() {
 		
 		carte= new ArrayList<>();
@@ -14,14 +23,14 @@ public class Mazzo {
 			for (Valore valore: Valore.values()) {
 				
 				carte.add(new Carta(seme, valore));
-				
 			}
 		}
-		
 		mescola();
-		
 	}
 	
+	/**
+	 * Mescola casualmente le carte attualmente presenti nel mazzo.
+	 */
 	private void mescola() {
 		
 		Random r= new Random();
@@ -42,10 +51,11 @@ public class Mazzo {
 		
 	}
 	
-	// private void mescola() {
-    // Collections.shuffle(this.carte);
-	// }
-	
+	/**
+	 * Estrae una carta dalla cima del mazzo.
+	 * 
+	 * @return la {@link Carta} pescata, oppure {@code null} se il mazzo è vuoto
+	 */
 	public Carta pesca() {
 		
 		if(!carte.isEmpty()) return carte.remove(carte.size()-1);
@@ -54,7 +64,13 @@ public class Mazzo {
 		
 	}
 	
-	public Carta scelgiBriscola() {
+	/**
+	 * Estrae l'ultima carta del mazzo per impostarla come briscola e la riposiziona
+	 * in fondo al mazzo (all'indice 0).
+	 * 
+	 * @return la {@link Carta} scelta come briscola, oppure {@code null} se il mazzo è vuoto
+	 */
+	public Carta scegliBriscola() {
 		
 		if(carte.isEmpty()) return null;
 		Carta ultima= carte.remove(carte.size()-1);
@@ -65,12 +81,21 @@ public class Mazzo {
 	}
 	
 
-	
+	/**
+	 * Verifica se il mazzo è privo di carte.
+	 * 
+	 * @return {@code true} se non ci sono più carte nel mazzo, {@code false} altrimenti
+	 */
 	public boolean isEmpty() {
 		
 		return carte.isEmpty();
 	}
 	
+	/**
+	 * Restituisce il numero di carte attualmente rimanenti nel mazzo.
+	 * 
+	 * @return il numero di carte ancora presenti
+	 */
 	public int getNumeroCarte() {
 		
 		return carte.size();

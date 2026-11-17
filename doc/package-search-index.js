@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"briscola.controller"},{"l":"briscola.model"},{"l":"briscola.view"}];updateSearchResults();

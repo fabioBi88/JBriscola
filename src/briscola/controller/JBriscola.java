@@ -1,8 +1,8 @@
 package briscola.controller;
 
+
 import java.awt.event.ActionListener;
 
-import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -135,9 +135,33 @@ public class JBriscola {
                 this.view.mostraSchermata(Pannello.TipoPannello.MENU.name());
             }
         });
+        
+        
+     // --- 3. AZIONI BOTTONI CARTE (SUD) ---
+        for (int i = 0; i < 3; i++) {
+            final int indiceCarta = i;
+            addCartaClickListener(indiceCarta, e -> {
+                if (this.model.isTurnoUmano() && indiceCarta < this.model.getManoUmano().size()) {
+                    
+                    Carta cartaGiocata = this.model.getManoUmano().get(indiceCarta);
+                    int slotTavolo = this.model.getTavolo().size();
+                    
+                    AudioManager.getInstance().play("/audio/placeCard.wav");
+
+                    // Il controller chiede alla View solo di ANIMARE la giocata
+                    this.view.getPannelloGioco().animaGiocata(0, indiceCarta, cartaGiocata.toString(), slotTavolo, () -> {
+                        // Callback: aggiorna il Model solo quando l'animazione è finita
+                        this.model.giocaCarta(model.getGiocatori().get(0), cartaGiocata);
+                        gestisciAvanzamentoTurno();
+                    });
+                }
+            });
+        }
         		
     
-        
+     /**
+      * no animazione
+      
      // --- 2. AZIONI BOTTONI CARTE (SUD) ---
         // Colleghiamo ciascuno dei 3 bottoni delle carte
         for (int i = 0; i < 3; i++) {
@@ -154,7 +178,7 @@ public class JBriscola {
                 }
             });
         }
-        
+      */  
         
     }
     
@@ -165,6 +189,13 @@ public class JBriscola {
             GestoreProfilo.salva(p);
         }
         this.model.setProfilo(p);
+    }
+    
+    public void addCartaClickListener(int indiceCarta, ActionListener listener) { 
+        if (indiceCarta >= 0 && indiceCarta < this.view.getPannelloGioco().getBottoniCarteMano().length) {
+            // Attacca il listener al bottone interno corrispondente (0, 1 o 2)
+            this.view.getPannelloGioco().getBottoniCarteMano()[indiceCarta].addActionListener(listener);
+        }
     }
     
     public void gestisciAvanzamentoTurno() {
@@ -199,6 +230,32 @@ public class JBriscola {
             timerPulizia.setRepeats(false);
             timerPulizia.start();
         } 
+        
+     // CASO 2: La mano non è finita e tocca a un Bot
+        else if (!this.model.isTurnoUmano() && !this.model.isFinita()) {
+            timerBot = new Timer(800, e -> {
+                if (this.model.getGiocatori().isEmpty()) return;
+
+                GiocatoreIA botCorrente = (GiocatoreIA) this.model.getGiocatoreCorrente();
+                Carta cartaBot = botCorrente.selezionaCartaDaGiocare(model); // modifica-----------------
+                
+                int idBot = this.model.getGiocatori().indexOf(botCorrente); // 1 = Ovest, 2 = Nord, 3 = Est
+                int slotTavolo = this.model.getTavolo().size();
+
+                AudioManager.getInstance().play("/audio/placeCard.wav");
+
+                // Animazione richiesta alla View
+                this.view.getPannelloGioco().animaGiocata(idBot, 0, cartaBot.toString(), slotTavolo, () -> {
+                    this.model.giocaCarta(botCorrente, cartaBot);
+                    gestisciAvanzamentoTurno();
+                });
+            });
+            timerBot.setRepeats(false);
+            timerBot.start();
+        }
+        
+        /**
+         * NO ANIMAZIONE
         // CASO 2: La mano non è finita e tocca a un Bot
         else if (!this.model.isTurnoUmano() && !this.model.isFinita()) {
             // Pausa di 1 secondo prima che il bot giochi
@@ -216,6 +273,8 @@ public class JBriscola {
             timerBot.setRepeats(false);
             timerBot.start();
         }
+        */
+        
         // CASO 3: Tocca all'Umano
         // Non serve nessun Timer, il programma attende il click dell'utente sui bottoni delle proprie carte
     }

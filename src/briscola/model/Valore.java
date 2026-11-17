@@ -1,5 +1,6 @@
 package briscola.model;
 
+// Definisce il nome, i punti e la forza di ogni carta
 public enum Valore {
 	
 	DUE(0,1,"02"),

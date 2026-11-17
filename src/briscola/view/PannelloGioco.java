@@ -4,6 +4,7 @@ import briscola.model.*;
 import briscola.model.Partita.Stato;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.Observable;
@@ -122,7 +123,7 @@ public class PannelloGioco extends Pannello {
         labelCarteTavolo = new JLabel[4];
         for (int i = 0; i < 4; i++) {
             labelCarteTavolo[i] = new JLabel();
-            labelCarteTavolo[i].setHorizontalAlignment(SwingConstants.CENTER);
+            labelCarteTavolo[i].setHorizontalAlignment(SwingConstants.CENTER); // L'immagine della carta viene posizionata esattamente al centro della propria cella, garantendo che le 4 carte sul tavolo risultino perfettamente spaziate e simmetriche tra loro.
             panelTavoloCarte.add(labelCarteTavolo[i]);
         }
         
@@ -272,14 +273,6 @@ public class PannelloGioco extends Pannello {
             return null;
         }
     }
-    
-    
-    public void addCartaClickListener(int indiceCarta, ActionListener listener) { // verificare se metterlo nel controller
-        if (indiceCarta >= 0 && indiceCarta < bottoniCarteMano.length) {
-            // Attacca il listener al bottone interno corrispondente (0, 1 o 2)
-            bottoniCarteMano[indiceCarta].addActionListener(listener);
-        }
-    }
 
     
     private JPanel creaPannelloTrasparente(LayoutManager layout) {
@@ -311,7 +304,92 @@ public class PannelloGioco extends Pannello {
 	public JButton getTornaAlMenu() {
 		return tornaAlMenu;
 	}
-    
+	
+	
+	public JButton[] getBottoniCarteMano() {
+		return bottoniCarteMano;
+	}
+	
+	// ANIMAZIONE GLASSPANE 
+	public void animaGiocata(int idGiocatore, int indiceCartaInMano, String nomeCarta, int slotTavolo, Runnable alTermine) {
+	    // 1. Individua i componenti di partenza e arrivo in base alle informazioni di gioco
+	    JComponent origine = null;
+	    if (idGiocatore == 0) { // Umano
+	        origine = bottoniCarteMano[indiceCartaInMano];
+	    } else if (idGiocatore == 1) { // Ovest
+	        origine = labelCarteOvest[0];
+	    } else if (idGiocatore == 2) { // Nord
+	        origine = labelCarteNord[0];
+	    } else if (idGiocatore == 3) { // Est
+	        origine = labelCarteEst[0];
+	    }
+
+	    JComponent destinazione = labelCarteTavolo[slotTavolo];
+	    
+	    
+	    // controllo di sicurezza 1 per evitare NullPointer Exception
+	    if (origine == null || destinazione == null) {
+	        if (alTermine != null) alTermine.run();
+	        return;
+	    }
+
+	    // 2. Prepara il GlassPane
+	    
+	    // controllo di sicurezza 2
+	    JRootPane rootPane = SwingUtilities.getRootPane(this);
+	    if (rootPane == null) {
+	        if (alTermine != null) alTermine.run();
+	        return;
+	    }
+
+	    JPanel glassPane = (JPanel) rootPane.getGlassPane();
+	    glassPane.setLayout(null);
+	    glassPane.setOpaque(false);
+	    glassPane.setVisible(true);
+
+	    // 3. Calcola posizioni e crea l'icona
+	    Point puntoInizio = SwingUtilities.convertPoint(origine.getParent(), origine.getLocation(), glassPane);
+	    Point puntoFine = SwingUtilities.convertPoint(destinazione.getParent(), destinazione.getLocation(), glassPane);
+	    ImageIcon iconaCarta = caricaIcona(nomeCarta, 70, 110);
+
+	    JLabel labelAnimata = new JLabel(iconaCarta);
+	    labelAnimata.setBounds(puntoInizio.x, puntoInizio.y, 70, 110);
+	    glassPane.add(labelAnimata);
+
+	    // 4. Esegui l'animazione con il Timer
+	    int passiTotali = 12;
+	    Timer timerAnimazione = new Timer(15, null);
+	    timerAnimazione.addActionListener(new ActionListener() {
+	        private int passo = 0;
+
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            passo++;
+	            double progresso = (double) passo / passiTotali;
+
+	            int x = (int) (puntoInizio.x + progresso * (puntoFine.x - puntoInizio.x));
+	            int y = (int) (puntoInizio.y + progresso * (puntoFine.y - puntoInizio.y));
+
+	            labelAnimata.setLocation(x, y);
+	            glassPane.repaint();
+
+	            if (passo >= passiTotali) {
+	                ((Timer) e.getSource()).stop();
+	                glassPane.remove(labelAnimata);
+	                glassPane.setVisible(false);
+	                glassPane.repaint();
+
+	                // Notifica al Controller che l'animazione grafica è terminata
+	                if (alTermine != null) {
+	                    alTermine.run();
+	                }
+	            }
+	        }
+	    });
+	    timerAnimazione.start();
+	}
+
+	
     
     
 }

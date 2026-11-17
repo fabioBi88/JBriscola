@@ -1,0 +1,6 @@
+# File compilati Java
+bin/
+*.class
+
+# Dati locali del programma
+profilo.dat

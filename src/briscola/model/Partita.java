@@ -8,7 +8,10 @@ import java.util.Observable;
 
 @SuppressWarnings("deprecation")
 
-
+/**
+ * Gestisce la logica principale, le regole e lo stato di una partita di Briscola a squadre.
+ * Estende {@link Observable} per notificare l'interfaccia utente (View) di ogni variazione dello stato di gioco.
+ */
 public class Partita extends Observable {
 	
 	private List<Giocatore> giocatori;
@@ -32,7 +35,9 @@ public class Partita extends Observable {
 	private Profilo profilo;
 
 	
-	
+	/**
+	 * Rappresenta i possibili stati in cui può trovarsi il ciclo di vita della partita.
+	 */
 	public enum Stato {
 		NON_INIZIATA, 
 		INIZIO_PARTITA,
@@ -43,7 +48,9 @@ public class Partita extends Observable {
 		FINE_PARTITA;
 	}
 	
-	
+	/**
+	 * Costruisce e inizializza una nuova istanza di partita nello stato {@link Stato#NON_INIZIATA}.
+	 */
 	public Partita() {
 		
 		mazzo= new Mazzo();
@@ -54,6 +61,12 @@ public class Partita extends Observable {
 		profilo= new Profilo("GiocatoreUmano");
 	}
 	
+	/**
+	 * Prepara una partita a 4 giocatori creando i tre bot IA e organizzandoli in due squadre
+	 * disposte alternativamente attorno al tavolo.
+	 * 
+	 * @param umano il {@link Giocatore} umano che partecipa alla partita
+	 */
 	public void preparaPartitaASquadre(Giocatore umano) {
 	    // 1. Generiamo i 3 bot alleati e avversari
 	    Giocatore compagnoBot = new GiocatoreIA("Bot-Compagno");
@@ -74,19 +87,32 @@ public class Partita extends Observable {
 	    giocatori.add(avversarioBot2);
 	}
 	
-	
+	/**
+	 * Modifica lo stato corrente della partita e notifica tutti gli osservatori del cambiamento.
+	 * 
+	 * @param nuovoStato il nuovo {@link Stato} da impostare
+	 */
 	public void cambiaStato(Stato nuovoStato) {
 		
 		this.statoPartita= nuovoStato;
 		setChanged();
-		notifyObservers(this.statoPartita);
+		notifyObservers(); // non uso l'argomento
 		
 	}
 	
+	/**
+	 * Restituisce lo stato attuale del flusso di gioco.
+	 * 
+	 * @return lo {@link Stato} corrente della partita
+	 */
 	public Stato getStatoCorrente() {
 		return statoPartita;
 	}
 	
+	/**
+	 * Inizializza la partita distribuendo 3 carte a ogni giocatore, definendo la briscola
+	 * e impostando lo stato iniziale.
+	 */
 	public void inizializzaPartita() {
 		
 		mazzo = new Mazzo();
@@ -103,24 +129,31 @@ public class Partita extends Observable {
 			distr-=1;
 		}
 		
-		briscola= mazzo.scelgiBriscola();
+		briscola= mazzo.scegliBriscola();
 		
 		turno= 0;
 		
 		cambiaStato(Stato.INIZIO_PARTITA);
 	}
 	
-	 
+	/**
+	 * Esegue la giocata di una carta da parte di un giocatore, posizionandola sul tavolo
+	 * e facendo avanzare il turno.
+	 * 
+	 * @param giocatore giocatore il {@link Giocatore} che intende calare la carta
+	 * @param carta carta la {@link Carta} da giocare
+	 * @throws IllegalStateException se il giocatore che tenta di giocare non è quello di turno
+	 */
 	public void giocaCarta(Giocatore giocatore, Carta carta) {
 		
 		if (!giocatore.equals(getGiocatoreCorrente())) {
             throw new IllegalStateException("Non è il turno di " + giocatore.getNickname());
         }
 
-        // 2. Rimuoviamo la carta dalla mano del giocatore
+        // 1. Rimuoviamo la carta dalla mano del giocatore
         giocatore.getMano().remove(carta);
 
-        // 3. Aggiungiamo la carta al tavolo
+        // 2. Aggiungiamo la carta al tavolo e nel dizionario giocate
         tavolo.add(carta);
         
         giocate.put(carta, giocatore);
@@ -128,11 +161,14 @@ public class Partita extends Observable {
         if (tavolo.size() < 4) {
             turno = (turno + 1) % giocatori.size();
         }
-        // 4. Notifichiamo la View del cambiamento
+        // 3. Notifichiamo la View del cambiamento
         cambiaStato(Stato.CARTA_GIOCATA);
        
 	}
 	
+	/**
+	 * Avvia una nuova mano verificando prima se la partita è giunta al termine.
+	 */
 	public void avviaNuovaMano() {
 	    // Se il gioco è finito, passiamo allo stato finale
 	    if (isFinita()) {
@@ -145,7 +181,10 @@ public class Partita extends Observable {
 	}
 
 	
-
+	/**
+	 * Determina il vincitore della mano corrente, assegna le carte vinte al suo pozzo,
+	 * gestisce la pescata di nuove carte dal mazzo e aggiorna lo stato di gioco.
+	 */
 	public void risolviMano() {
 	    Carta cartaVincente = RegoleBriscola.determinaVincente(tavolo, briscola);
 	    Giocatore giocatoreVincente = giocate.get(cartaVincente);
@@ -179,7 +218,11 @@ public class Partita extends Observable {
 		
 	
 	
-	
+	/**
+	 * Verifica se la partita è terminata.
+	 * 
+	 * @return {@code true} se mazzo, tavolo e mani dei giocatori sono vuoti, {@code false} altrimenti
+	 */
 	public boolean isFinita() {
 		
 		if(giocatori == null || giocatori.isEmpty()) return false;
@@ -188,14 +231,29 @@ public class Partita extends Observable {
 	
 	}
 	
+	/**
+	 * Verifica se è attualmente il turno del giocatore umano.
+	 * 
+	 * @return {@code true} se spetta all'umano giocare, {@code false} altrimenti
+	 */
 	public boolean isTurnoUmano() {
         return this.turno == 0;
     }
 	
+	/**
+	 * Restituisce l'indice del giocatore attualmente di turno.
+	 * 
+	 * @return l'indice del turno corrente
+	 */
 	public int getTurno() {
 		return turno;
 	}
-			
+	
+	/**
+	 * Determina la squadra vincitrice della partita confrontando i punti totali accumulati.
+	 * 
+	 * @return la {@link Squadra} che ha ottenuto il punteggio più alto
+	 */
 	public Squadra getVincitoreFinale() {
 			
 			//vincitoreFinale= giocatori.stream().max(Comparator.comparing(Giocatore::calcolaPunteggio)).orElse(null);
@@ -205,32 +263,60 @@ public class Partita extends Observable {
 			return squadraVincente;		
 	}
 		
-
+	/**
+	 * Restituisce la carta che definisce il seme di briscola per la partita corrente.
+	 * 
+	 * @return la {@link Carta} di briscola
+	 */
 	public Carta getBriscola() {
 
 		return briscola;
 	}
 	
-
+	/**
+	 * Restituisce la lista di tutti i giocatori partecipanti.¨
+	 * 
+	 * @return la lista dei {@link Giocatore}
+	 */
 	public List<Giocatore> getGiocatori() {
 		return giocatori;
 	}
 	
+	/**
+	 * Restituisce le squadre partecipanti alla partita.
+	 * 
+	 * @return la lista delle {@link Squadra}
+	 */
 	public List<Squadra> getSquadre(){
 		
 		return squadre;
 		
 	}
-
+	
+	/**
+	 * Restituisce le carte attualmente giocate sul tavolo nella mano corrente.
+	 * 
+	 * @return la lista delle {@link Carta} sul tavolo
+	 */
 	public List<Carta> getTavolo() {
 		return tavolo;
 	}
 	
+	/**
+	 * Restituisce il giocatore a cui spetta la mossa nel turno corrente.
+	 * 
+	 * @return il {@link Giocatore} di turno
+	 */
 	public Giocatore getGiocatoreCorrente() {
 		
 		return giocatori.get(turno);
 	}
 	
+	/**
+	 * Restituisce la mano di carte del giocatore umano (primo giocatore).
+	 * 
+	 * @return la lista delle {@link Carta} in mano all'utente
+	 */
 	public List<Carta> getManoUmano(){
 		
 		if(giocatori == null || giocatori.isEmpty()) return new ArrayList<>();
@@ -238,15 +324,30 @@ public class Partita extends Observable {
 		return giocatori.get(0).getMano();
 	}
 	
+	/**
+	 * Restituisce il mazzo di carte della partita.
+	 * 
+	 * @return il {@link Mazzo} in uso
+	 */
 	public Mazzo getMazzo(){
 		
 		return mazzo;
 	}
 	
+	/**
+	 * Restituisce il profilo utente associato alla partita corrente.
+	 * 
+	 * @return il {@link Profilo} dell'utente
+	 */
 	public Profilo getProfilo() {
 		return profilo;
 	}
 	
+	/**
+	 * Associa un nuovo profilo utente alla partita e notifica gli osservatori.
+	 * 
+	 * @param profilo il nuovo {@link Profilo} da associare
+	 */
 	public void setProfilo(Profilo profilo) {
 		
 		this.profilo=profilo;
@@ -255,6 +356,9 @@ public class Partita extends Observable {
         notifyObservers();
 	}
 	
+	/**
+	 * Ripristina lo stato iniziale della partita svuotando mazzo, tavoli, squadre e collezioni di giocate.
+	 */
 	public void resetPartita() {
 		
 		this.mazzo= new Mazzo();
@@ -280,6 +384,9 @@ public class Partita extends Observable {
 	    cambiaStato(Stato.NON_INIZIATA);
 	}
 	
+	/**
+	 * Aggiorna il bilancio di vittorie/sconfitte nel profilo dell'utente a fine partita e salva i dati su file.
+	 */
 	public void aggiornaStatisticheFinePartita() {
 		
 		if (profilo == null || squadre.isEmpty()) return;
@@ -296,6 +403,45 @@ public class Partita extends Observable {
         
         setProfilo(profilo); // Notifica la View per sicurezza
 		
+	}
+	
+	/**
+	 * Individua il compagno di squadra del giocatore specificato.
+	 * 
+	 * @param g il {@link Giocatore} di cui identificare il compagno
+	 * @return il {@link Giocatore} compagno di squadra, oppure {@code null} se non trovato
+	 */
+	public Giocatore getCompagnoDi(Giocatore g) {
+		
+		//filtro le squadre selezionando quella che contiene il giocatore "g" di cui identificare il compagno, della squadra risultante filtro e restituisco il giocatore compagno, che non è "g"
+		return squadre.stream().filter(s->s.contieneGiocatore(g)).flatMap(s->s.getGiocatori().stream()).filter(gg->!gg.equals(g)).findFirst().orElse(null);
+
+	}
+	
+	/**
+	 * Risale al giocatore che ha calato una specifica carta sul tavolo nella mano corrente.
+	 * 
+	 * @param cartaCorrente la {@link Carta} di cui si vuole conoscere l'autore della giocata
+	 * @return il {@link Giocatore} che ha giocato la carta, oppure {@code null} se non presente
+	 */
+	public Giocatore getGiocatoreCheHaGiocato(Carta cartaCorrente) {
+		
+		return giocate.get(cartaCorrente);
+		
+	}
+	
+	/**
+	 * Verifica se due giocatori fanno parte della medesima squadra.
+	 * 
+	 * @param uno il primo {@link Giocatore} da verificare
+	 * @param due il secondo {@link Giocatore} da verificare
+	 * @return {@code true} se i due giocatori appartengono alla stessa squadra, {@code false} altrimenti
+	 */
+	public boolean sonoInStessaSquadra(Giocatore uno, Giocatore due) {
+	    if (uno == null || due == null) return false; // sicurezza
+
+	    return squadre.stream()
+	            .anyMatch(s -> s.contieneGiocatore(uno) && s.contieneGiocatore(due));
 	}
 	
 
